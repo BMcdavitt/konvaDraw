@@ -1,0 +1,296 @@
+<html>
+
+<head>
+    <title>Graph Draw</title>
+    <script src="https://unpkg.com/konva@8/konva.min.js"></script>
+    <script src="https://hammerjs.github.io/dist/hammer.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    </script>
+
+    <script src="containerSize.js"></script>
+
+    <link rel="stylesheet" href="index.css">
+
+    <script>
+        const defaultWidth = 500
+        const defaultHeight = 500
+
+        const defaultTension = 0.5
+
+        let globalHScale = 1
+        let globalWScale = 1
+
+        let defaultImage = 'dig.jpg'
+
+    </script>
+
+</head>
+
+<body>
+    <div id="body">
+
+        <div id="optionsArea">
+
+            <div id="formArea">
+
+                <div id="controlGroup">
+                    <div>Pencil Type</div>
+
+                    <select id="pencilSelect" onChange="changePencil()">
+                        <option>pencil 2d</option>
+                        <option>pencil vector</option>
+                        <option selected>curve</option>
+                    </select>
+                </div>
+
+
+                <div id="controlGroup">
+                    <div>Eraser</div>
+
+                    <select id="eraserSelect" onChange="changePencil()">
+                        <option selected>Off</option>
+                        <option>On</option>
+                    </select>
+                </div>
+                <!-- 
+                <div id="controlGroup">
+                    <div>Curve Tension</div>
+                    <input type="number" id="tension" min="-2" max="2">
+                </div> -->
+
+                <div id="controlGroup">
+                    <div>New Anchor</div>
+
+                    <select id="anchorSelect">
+                        <option>Top-Left</option>
+                        <option>Top-Middle</option>
+                        <option>Top-Right</option>
+                        <option>Middle-Left</option>
+                        <option>Middle-Middle</option>
+                        <option>Middle-Right</option>
+                        <option>Bottom-Left</option>
+                        <option>Bottom-Middle</option>
+                        <option>Bottom-Right</option>
+                    </select>
+                </div>
+
+                <div id="controlGroup">
+                    <div>Width</div>
+                    <input type="number" id="userWidth">
+                </div>
+                <div id="controlGroup">
+                    <div>Height</div>
+                    <input type="number" id="userHeight">
+                </div>
+                <script>
+                    document.getElementById("userWidth").value = defaultWidth
+                    document.getElementById("userHeight").value = defaultHeight
+                    // document.getElementById("tension").value = defaultTension
+                </script>
+                <button class="createButton" onClick="updateSize()">Apply</button>
+                <div id="buttonGroup">
+                    <button class="createGroupButton" onClick="downloasSVG()">Get SVG</button>
+                    <button class="createGroupButton" onClick="setupNewStage()">New</button>
+                </div>
+                <div id="buttonGroup">
+                    <button class="createGroupButton" onClick="undo_drawing()">Undo</button>
+                    <button class="createGroupButton" onClick="redo_drawing()">Redo</button>
+                </div>
+                <div id="buttonGroup">
+                    <button class="createGroupButton" onClick="loadStageState()">Load</button>
+                    <button class="createGroupButton" onClick="saveStageState()">Save</button>
+                </div>
+                <button id="capturePhotoButton" class="createButton">Capture</button>
+                <button class="createButton" onClick="gridToggle()">Grid</button>
+            </div>
+
+
+        </div>
+
+        <div id="container-background">
+            <div id="grid-column">
+                <div id="grid-row">
+                    <div>
+                        <div id="container">
+
+
+                        </div>
+                        <div class="slidecontainer">
+                            <input type="range" min="0" max="100" id="horizontal-slider" class="slider">
+                        </div>
+                    </div>
+
+                    <div class="slidecontainerVert">
+                        <input type="range" min="0" max="100" id="vertical-slider" class="slider">
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div id="imagecapture">
+            <div id="optionsArea">
+                <div id="formArea">
+                    <button class="createButton" onClick="captureNewImage()">Capture Image</button>
+                    <button class="createButton" onClick="exitCapturePhoto()">Exit</button>
+                </div>
+            </div>
+
+            <video id="video" height="75%" autoplay></video>
+            <canvas id="videoCapture"></canvas>
+
+        </div>
+
+        <script>
+            updateContainerSize(defaultHeight, defaultWidth)
+        </script>
+
+        <script src="konvaDraw.js"></script>
+        <script src="imageCapture.js"></script>
+
+        <script>
+
+            function updateSize(newHeight, newWidth) {
+
+                if (!newWidth) {
+                    newWidth = document.getElementById('userWidth').value
+                }
+
+                if (!newHeight) {
+                    newHeight = document.getElementById('userHeight').value
+                }
+
+                adjustSize(newHeight, newWidth)
+
+                completeShape()
+            }
+
+            updateSize()
+
+            function adjustSize(height, width) {
+
+                let newWidth = width
+                let newHeight = height
+                let maxDimensions = getMaxHeightWidth()
+                let containerDimensions = getNewContainerDimensions(
+                    height,
+                    width
+                )
+
+                stage.scaleX(globalWScale)
+                stage.scaleY(globalWScale)
+
+                updateContainerSize(
+                    Math.min(maxDimensions.height, containerDimensions.height),
+                    Math.min(maxDimensions.width, containerDimensions.width)
+                )
+
+                updateGraphSize(
+                    Math.min(containerDimensions.height, maxDimensions.height),
+                    Math.min(containerDimensions.width, maxDimensions.width),
+                    height,
+                    width
+                )
+
+            }
+
+            window.addEventListener('resize', () => {
+                //  Prevent keyboard pop-up from triggering a call to updateSize()
+                if ($(document.activeElement).attr('type') !== 'number') {
+                    updateSize()
+                }
+            })
+
+            function changePencil() {
+                togglePencil()
+            }
+
+            function downloasSVG() {
+                svgDownload()
+            }
+
+            function setupNewStage() {
+                document.getElementById('userWidth').readOnly = false
+                document.getElementById('userHeight').readOnly = false
+                newStage()
+            }
+
+            function gridToggle() {
+                toggleGrid()
+            }
+
+            function loadStageState() {
+                var input = document.createElement('input');
+                input.type = 'file';
+
+                input.onchange = e => {
+
+                    // getting a hold of the file reference
+                    var file = e.target.files[0];
+
+                    // setting up the reader
+                    var reader = new FileReader();
+                    reader.readAsText(file, 'UTF-8');
+
+                    // here we tell the reader what to do when it's done reading...
+                    reader.onload = readerEvent => {
+                        var content = readerEvent.target.result; // this is the content!
+
+
+                        // loadStage(JSON.parse(content), 'dig.jpg')
+                        loadStage(JSON.parse(content))
+                        // loadStage('', 'dig.jpg')
+                    }
+
+                }
+
+                input.click();
+            }
+
+            function saveStageState() {
+                let jsonStageData = saveStage()
+                downloadJSON('stage.json', JSON.stringify(jsonStageData[0]))
+
+
+                if (jsonStageData[1] !== 'data:,') {
+                    downloadPNG('stageBackground.png',jsonStageData[1])
+                }
+
+            }
+
+            function captureNewImage() {
+                let newPhotoDataUrl = capturePhoto()
+                displayImage(newPhotoDataUrl)
+            }
+
+            // Prevent accidental pinch/zoom events
+
+            let myElement = document.getElementById('body')
+            let mc = new Hammer(myElement)
+
+            mc.on("panleft panright tap press", function (ev) {
+
+            })
+
+            function downloadJSON(filename, text) {
+                var link = document.createElement('a')
+                link.setAttribute(
+                    'href',
+                    'data:text/json;charset=utf-8,' + encodeURIComponent(text)
+                )
+                link.setAttribute('download', filename)
+                link.click()
+            }
+
+            function downloadPNG(finename,content) {
+                var link = document.createElement('a')
+                link.setAttribute('download',finename)
+                link.setAttribute('href',content)
+                link.click()
+            }
+
+        </script>
+    </div>
+</body>
+
+</html>
