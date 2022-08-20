@@ -13,7 +13,7 @@ let newPos = ''
 let newScaleForImgGraph = 1
 
 let brushColor = 'black'
-let vBrushColor = 'blue'
+let vBrushColor = 'green'
 let brushSize = 4
 let vBrushSize = 4
 let eraserSize = 20
